@@ -7,7 +7,14 @@ authors = [
     { name = "Hector Brown", email = "hectorjbrown@protonmail.com" }
 ]
 requires-python = ">=3.14"
-dependencies = []
+dependencies = [
+    "jupyterlab>=4.6.3",
+    "jupyterlab-vim>=4.1.4",
+    "matplotlib>=3.11.1",
+    "numpy>=2.5.2",
+    "scipy>=1.18.1",
+    "tqdm>=4.70.0",
+]
 
 [project.scripts]
 latham = "latham:main"
@@ -15,3 +22,6 @@ latham = "latham:main"
 [build-system]
 requires = ["uv_build>=0.12.6,<0.13.0"]
 build-backend = "uv_build"
+
+[dependency-groups]
+dev = []
