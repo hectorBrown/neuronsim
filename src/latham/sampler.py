@@ -1,11 +1,14 @@
 from collections.abc import Callable
 
 import numpy as np
-from numpy.core.numeric import float64
+from numpy import float32
+from numpy.random import Generator
 from numpy.typing import NDArray
 
 
-def rejection(f: Callable, size: int, x_min: float, x_max: float) -> NDArray[float64]:
+def rejection(
+    rng: Generator, f: Callable, size: int, x_min: float, x_max: float
+) -> NDArray[float32]:
     """
     Rejection sampler for arbitrary probability density functions.
 
@@ -16,12 +19,12 @@ def rejection(f: Callable, size: int, x_min: float, x_max: float) -> NDArray[flo
         x_max (float): The largest possible value to sample.
 
     Returns:
-        NDArray[float64]: The produced sample according to f.
+        NDArray[float32]: The produced sample according to f.
 
     """
-    res: NDArray[float64] = np.array([])
+    res: NDArray[float32] = np.array([], dtype=float32)
     while res.size < size:
-        x = np.random.uniform(x_min, x_max, size)
-        u = np.random.uniform(0, 1, size)
-        res: NDArray[float64] = np.append(res, x[u < f(x)])
+        x: NDArray[float32] = x_min + (x_max - x_min) * rng.random(size, dtype=float32)
+        u: NDArray[float32] = rng.random(size, dtype=float32)
+        res: NDArray[float32] = np.append(res, x[u < f(x)])
     return res[:size]
