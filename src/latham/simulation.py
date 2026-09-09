@@ -359,7 +359,7 @@ def run_sim(
     trace_V = np.zeros(total_steps + 1, dtype=float32)
 
     spikes_s: NDArray[bool] = np.zeros((total_steps + 1, network_params.N)).astype(bool)
-    t = np.arange(0, time_step * total_steps + time_step, time_step)
+    t = np.arange(0, time_step * total_steps + time_step, time_step, dtype=float32)
     for i, _ in tqdm(
         enumerate(t),
         total=total_steps,
