@@ -352,9 +352,11 @@ def run_sim(
     network_params: NetworkParams,
     time_step: float = 1,  # ms
     total_steps=100 * 1000,  # 100s
+    trace: int | None = None,
 ):
     state = State(cell_params, synaptic_params, network_params, time_step)
     print("Successfully initialised simulation.")
+    trace_V = np.zeros(total_steps + 1, dtype=float32)
 
     spikes_s: NDArray[bool] = np.zeros((total_steps + 1, network_params.N)).astype(bool)
     t = np.arange(0, time_step * total_steps + time_step, time_step)
@@ -370,4 +372,9 @@ def run_sim(
         spikes: NDArray[bool] = state.process_spikes(cell_params, synaptic_params)
 
         spikes_s[i] = spikes
-    return t, spikes_s, state
+        if trace is not None:
+            trace_V[i] = state.V[trace]
+    if trace is not None:
+        return t, spikes_s, state, trace_V
+    else:
+        return t, spikes_s, state
