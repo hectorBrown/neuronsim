@@ -383,15 +383,24 @@ type TraceType = (
     | InhibitoryAverageTraceType
     | NoTraceType
 )
+
+
+type SimulationResult = (
+    tuple[NDArray[float32], NDArray[bool], State]
+    | tuple[NDArray[float32], NDArray[bool], State, NDArray[float32]]
+    | tuple[NDArray[float32], NDArray[bool], State, NDArray[float32], NDArray[float32]]
+)
+
+
 def run_sim(
     cell_params: CellParams,
     synaptic_params: SynapticParams,
     network_params: NetworkParams,
     time_step: float = 1,  # ms
     total_steps: int = 100 * 1000,  # 100s
-):
     trace_V: TraceType = NO_TRACE_TYPE,
     trace_g_K_Ca: TraceType = NO_TRACE_TYPE,
+) -> SimulationResult:
     """
     Run neuronal simulation.
 
