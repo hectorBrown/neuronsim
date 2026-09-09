@@ -334,7 +334,7 @@ class State:
                 [
                     np.sum(spike_connectivity, axis=1),
                     np.sum(
-                        spike_connectivity * self.rev_potentials[spikes.astype(bool)],
+                        spike_connectivity * self.rev_potentials[spikes],
                         axis=1,
                     ),
                 ],
