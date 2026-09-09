@@ -351,7 +351,7 @@ def run_sim(
     synaptic_params: SynapticParams,
     network_params: NetworkParams,
     time_step: float = 1,  # ms
-    total_steps=5000,
+    total_steps=100 * 1000,  # 100s
 ):
     state = State(cell_params, synaptic_params, network_params, time_step)
     print("Successfully initialised simulation.")
