@@ -17,8 +17,15 @@ class State:
         time_step: float,
     ):
         rng = np.random.default_rng(0)
-        # initialise voltages at resting potentials
-        self.V: NDArray[float64] = np.ones(network_params.N) * cell_params.V_r
+        # initialise voltages at random potentials between V_r and V_t --
+        # without this there is no access to the metastable states described in
+        # the paper without endogenously active cells
+        # self.V: NDArray[float32] = (
+        #     np.ones(network_params.N, dtype=float32) * cell_params.V_r
+        # )
+        self.V: NDArray[float32] = cell_params.V_r + (
+            cell_params.V_t - cell_params.V_r
+        ) * rng.random(network_params.N, dtype=float32)
         # initialise all conductances at rest (0)
         self.conductances: NDArray[float32] = np.zeros(
             (2, network_params.N), dtype=float32
