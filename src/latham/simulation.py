@@ -351,9 +351,30 @@ def run_sim(
     synaptic_params: SynapticParams,
     network_params: NetworkParams,
     time_step: float = 1,  # ms
-    total_steps=100 * 1000,  # 100s
+    total_steps: int = 100 * 1000,  # 100s
     trace: int | None = None,
+) -> (
+    tuple[NDArray[float32], NDArray[bool], State]
+    | tuple[NDArray[float32], NDArray[bool], State, NDArray[float32]]
 ):
+    """
+    Run neuronal simulation.
+
+    Args:
+        cell_params (CellParams): The cell parameters for the simulation.
+        synaptic_params (SynapticParams): The synaptic parameters for the simulation.
+        network_params (NetworkParams): The network parameters for the simulation.
+        time_step (float): The time step per-update of the simulation (ms). Defaults to 1.
+        total_steps (int): The total number of steps to perform. Defaults to 100,000 -> 100s with a 1ms step.
+        trace (int | None): When set, the index of the neuron to return a lifetime potential history for.
+
+    Returns:
+        NDArray[float32]: Array of shape (total_steps,) with the cumulative time at each step.
+        NDArray[bool]: Array of shape (total_steps,N), where N is the number of
+            neurons, which maps which neurons spiked at every step (spikes -> True).
+        State: The final state of the simulation.
+        (Optional) NDArray[float32]: A voltage trace of the neuron with index `trace`, if set.
+    """
     state = State(cell_params, synaptic_params, network_params, time_step)
     print("Successfully initialised simulation.")
     trace_V = np.zeros(total_steps + 1, dtype=float32)
