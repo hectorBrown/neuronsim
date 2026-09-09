@@ -311,6 +311,8 @@ class State:
     def process_spikes(self, cell_params, synaptic_params):
         # boolean array of neurons for which a spike has occured
         spikes: NDArray[bool] = self.V > cell_params.V_apex
+        if spikes.sum() == 0:
+            return spikes
 
         # reset membrane potentials for those
         self.V *= 1 - spikes
