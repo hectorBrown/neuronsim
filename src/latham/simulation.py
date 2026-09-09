@@ -356,7 +356,7 @@ def run_sim(
     state = State(cell_params, synaptic_params, network_params, time_step)
     print("Successfully initialised simulation.")
 
-    activity: NDArray[bool] = np.zeros((total_steps + 1, network_params.N)).astype(bool)
+    spikes_s: NDArray[bool] = np.zeros((total_steps + 1, network_params.N)).astype(bool)
     t = np.arange(0, time_step * total_steps + time_step, time_step)
     for i, _ in tqdm(
         enumerate(t),
@@ -369,5 +369,5 @@ def run_sim(
         # get spikes
         spikes: NDArray[bool] = state.process_spikes(cell_params, synaptic_params)
 
-        activity[i] = spikes
-    return t, activity
+        spikes_s[i] = spikes
+    return t, spikes_s, state
