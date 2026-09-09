@@ -1,3 +1,5 @@
+from dataclasses import dataclass
+
 import numpy as np
 from numpy import bool, float32
 from numpy.random import Generator
@@ -346,17 +348,50 @@ class State:
         return spikes
 
 
+@dataclass(frozen=True)
+class IndexedTraceType:
+    index: int
+
+
+@dataclass(frozen=True)
+class FullAverageTraceType:
+    pass
+
+
+@dataclass(frozen=True)
+class ExcitatoryAverageTraceType:
+    pass
+
+
+@dataclass(frozen=True)
+class InhibitoryAverageTraceType:
+    pass
+
+
+@dataclass(frozen=True)
+class NoTraceType:
+    pass
+
+
+NO_TRACE_TYPE = NoTraceType()
+
+
+type TraceType = (
+    IndexedTraceType
+    | FullAverageTraceType
+    | ExcitatoryAverageTraceType
+    | InhibitoryAverageTraceType
+    | NoTraceType
+)
 def run_sim(
     cell_params: CellParams,
     synaptic_params: SynapticParams,
     network_params: NetworkParams,
     time_step: float = 1,  # ms
     total_steps: int = 100 * 1000,  # 100s
-    trace: int | None = None,
-) -> (
-    tuple[NDArray[float32], NDArray[bool], State]
-    | tuple[NDArray[float32], NDArray[bool], State, NDArray[float32]]
 ):
+    trace_V: TraceType = NO_TRACE_TYPE,
+    trace_g_K_Ca: TraceType = NO_TRACE_TYPE,
     """
     Run neuronal simulation.
 
@@ -366,18 +401,27 @@ def run_sim(
         network_params (NetworkParams): The network parameters for the simulation.
         time_step (float): The time step per-update of the simulation (ms). Defaults to 1.
         total_steps (int): The total number of steps to perform. Defaults to 100,000 -> 100s with a 1ms step.
-        trace (int | None): When set, the index of the neuron to return a lifetime potential history for.
+        trace_V (TraceType): Sets whether a trace is required for the membrane potential.
+        trace_g_K_Ca (TraceType): Sets whether a trace is required for the slow after-hyperpolarization conductance.
 
     Returns:
         NDArray[float32]: Array of shape (total_steps,) with the cumulative time at each step.
         NDArray[bool]: Array of shape (total_steps,N), where N is the number of
             neurons, which maps which neurons spiked at every step (spikes -> True).
         State: The final state of the simulation.
-        (Optional) NDArray[float32]: A voltage trace of the neuron with index `trace`, if set.
+        (Optional) NDArray[float32]: A voltage trace if `trace_V_index` is set.
+        (Optional) NDArray[float32]: A slow after-hyperpolarization conductance trace if `trace_g_K_Ca` if set.
     """
     state = State(cell_params, synaptic_params, network_params, time_step)
     print("Successfully initialised simulation.")
-    trace_V = np.zeros(total_steps + 1, dtype=float32)
+    trace_V_acc = np.zeros(
+        total_steps + 1,
+        dtype=float32,
+    )
+    trace_g_K_Ca_acc = np.zeros(
+        total_steps + 1,
+        dtype=float32,
+    )
 
     spikes_s: NDArray[bool] = np.zeros((total_steps + 1, network_params.N)).astype(bool)
     t = np.arange(0, time_step * total_steps + time_step, time_step, dtype=float32)
@@ -393,9 +437,54 @@ def run_sim(
         spikes: NDArray[bool] = state.process_spikes(cell_params, synaptic_params)
 
         spikes_s[i] = spikes
-        if trace is not None:
-            trace_V[i] = state.V[trace]
-    if trace is not None:
-        return t, spikes_s, state, trace_V
-    else:
-        return t, spikes_s, state
+        _update_trace(trace_V_acc, trace_V, state.V, network_params, i)
+        _update_trace(
+            trace_g_K_Ca_acc, trace_g_K_Ca, state.conductances[1], network_params, i
+        )
+
+    res: tuple[NDArray[float32], NDArray[bool], State] = t, spikes_s, state
+
+    match trace_V:
+        case NoTraceType():
+            pass
+        case _:
+            res: tuple[NDArray[float32], NDArray[bool], State, NDArray[float32]] = (
+                res + (trace_V_acc,)
+            )  # ty: ignore
+    match trace_g_K_Ca:
+        case NoTraceType():
+            pass
+        case _:
+            res: (
+                tuple[NDArray[float32], NDArray[bool], State, NDArray[float32]]
+                | tuple[
+                    NDArray[float32],
+                    NDArray[bool],
+                    State,
+                    NDArray[float32],
+                    NDArray[float32],
+                ]
+            ) = res + (trace_g_K_Ca_acc,)  # ty: ignore
+    return res
+
+
+def _update_trace(
+    accumulator: NDArray[float32],
+    type: TraceType,
+    state: NDArray[float32],
+    network_params: NetworkParams,
+    step: int,
+):
+    match type:
+        case FullAverageTraceType():
+            accumulator[step] = state.sum() / network_params.N
+        case ExcitatoryAverageTraceType():
+            accumulator[step] = state.sum() / (
+                network_params.N - int(network_params.inhib_fraction * network_params.N)
+            )
+        case InhibitoryAverageTraceType():
+            accumulator[step] = state.sum() / int(
+                network_params.inhib_fraction * network_params.N
+            )
+        case IndexedTraceType(index):
+            accumulator[step] = state[index]
