@@ -44,7 +44,7 @@ class SynapticParams:
     """
 
     r_s = 0.1
-    tau_s = 0.3  # ms
+    tau_s = 3  # ms
 
 
 class NetworkParams:
