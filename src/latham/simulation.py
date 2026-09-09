@@ -288,7 +288,7 @@ class State:
         k4 = potential_step(
             self.V + k3 * self.time_step,
             self.conductances * self.conductance_decay_full_step,
-            self.synaptic_currents * self.conductance_decay_full_step,
+            self.synaptic_currents * self.synaptic_current_decay_full_step,
             self.I_a,
             cell_params,
         )
