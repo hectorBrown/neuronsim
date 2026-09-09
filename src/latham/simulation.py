@@ -101,8 +101,12 @@ class State:
         rng: Generator, network_params: NetworkParams
     ) -> NDArray[float32]:
         def radial_dist(r_sample, Delta_r):
-            return (1 - np.tanh((np.pow(r_sample, 2) - 1) / Delta_r)) / (
-                np.pi * Delta_r * np.log(1 + np.exp(2 / Delta_r))
+            return (
+                (
+                    2 * np.pi * r_sample
+                )  # Jacobian normalisation (strictly 2\pi isnt necessary)
+                * (1 - np.tanh((np.pow(r_sample, 2) - 1) / Delta_r))
+                / (np.pi * Delta_r * np.log(1 + np.exp(2 / Delta_r)))
             )
 
         # distribute uniformly azimuthally
