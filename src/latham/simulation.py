@@ -315,8 +315,7 @@ class State:
             return spikes
 
         # reset membrane potentials for those
-        self.V *= 1 - spikes
-        self.V += spikes * cell_params.V_repol
+        self.V = np.where(spikes, cell_params.V_repol, self.V).astype(float32)
 
         # adjust conductances
         self.conductances += spikes * self.spike_conductance_update
