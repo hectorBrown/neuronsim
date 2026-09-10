@@ -23,23 +23,20 @@ class State:
         # initialise voltages at random potentials between V_r and V_t --
         # without this there is no access to the metastable states described in
         # the paper without endogenously active cells
-        # self.V: NDArray[float32] = (
-        #     np.ones(network_params.N, dtype=float32) * cell_params.V_r
-        # )
-        self.V: NDArray[float32] = cell_params.V_r + (
-            cell_params.V_t - cell_params.V_r
-        ) * rng.random(network_params.N, dtype=float32)
+        self.potns: NDArray[float32] = cell_params.v_r + (
+            cell_params.v_t - cell_params.v_r
+        ) * rng.random(network_params.n, dtype=float32)
         # initialise all conductances at rest (0)
         self.conductances: NDArray[float32] = np.zeros(
-            (2, network_params.N), dtype=float32
+            (2, network_params.n), dtype=float32
         )
         # initalise all synaptic currents at rest (0)
         self.synaptic_currents: NDArray[float32] = np.zeros(
-            (2, network_params.N), dtype=float32
+            (2, network_params.n), dtype=float32
         )
         # initialise the applied current vector as a boxcar between 0 and I_max
-        self.I_a: NDArray[float32] = (cell_params.I_max) * rng.random(
-            network_params.N, dtype=float32
+        self.applied_currents: NDArray[float32] = (cell_params.i_max) * rng.random(
+            network_params.n, dtype=float32
         )
         # distribute neurons in space
         self.positions: NDArray[float32] = State._get_neuron_positions(
@@ -47,11 +44,11 @@ class State:
         )
 
         # initialise a neuron_types array of booleans (False -> Inhibitory, True -> Excitatory)
-        N_I = int(
-            network_params.inhib_fraction * network_params.N
+        number_inhib = int(
+            network_params.inhib_fraction * network_params.n
         )  # number of inhibitory neurons
         self.neuron_types: NDArray[bool] = np.concat(
-            [np.zeros(N_I), np.ones(network_params.N - N_I)]
+            [np.zeros(number_inhib), np.ones(network_params.n - number_inhib)]
         ).astype(bool)  # excitatory represented by 1, inhibitory by 0
 
         # initialise an array of reversal potentials based on neuron type
@@ -62,7 +59,7 @@ class State:
 
         # find the connection matrix
         self.connectivity: NDArray[float32] = State._get_connection_matrix(
-            N_I,
+            number_inhib,
             self.positions,
             cell_params,
             synaptic_params,
@@ -75,9 +72,9 @@ class State:
         # precompute decay steps
         self.conductance_decay_half_step: NDArray[float32] = np.vstack(
             (
-                np.ones(network_params.N) * np.exp(-time_step / 2 / cell_params.tau_K),
-                np.ones(network_params.N)
-                * np.exp(-time_step / 2 / cell_params.tau_K_Ca),
+                np.ones(network_params.n) * np.exp(-time_step / 2 / cell_params.tau_k),
+                np.ones(network_params.n)
+                * np.exp(-time_step / 2 / cell_params.tau_k_ca),
             ),
             dtype=float32,
         )
@@ -85,7 +82,7 @@ class State:
             self.conductance_decay_half_step, 2, dtype=float32
         )
         self.synaptic_current_decay_half_step: NDArray[float32] = np.ones(
-            (2, network_params.N), dtype=float32
+            (2, network_params.n), dtype=float32
         ) * np.exp(-time_step / 2 / synaptic_params.tau_s, dtype=float32)
         self.synaptic_current_decay_full_step: NDArray[float32] = np.pow(
             self.synaptic_current_decay_half_step, 2, dtype=float32
@@ -94,8 +91,8 @@ class State:
         # precompute update to conductance on spike
         self.spike_conductance_update: NDArray[float32] = np.vstack(
             (
-                np.ones(network_params.N) * cell_params.delta_g_K,
-                np.ones(network_params.N) * cell_params.delta_g_K_Ca,
+                np.ones(network_params.n) * cell_params.delta_g_k,
+                np.ones(network_params.n) * cell_params.delta_g_k_ca,
             ),
             dtype=float32,
         )
@@ -103,32 +100,32 @@ class State:
     def _get_neuron_positions(
         rng: Generator, network_params: NetworkParams
     ) -> NDArray[float32]:
-        def radial_dist(r_sample, Delta_r):
+        def radial_dist(r_sample, delta_r):
             return (
                 (
                     2 * np.pi * r_sample
                 )  # Jacobian normalisation (strictly 2\pi isnt necessary)
-                * (1 - np.tanh((np.pow(r_sample, 2) - 1) / Delta_r))
-                / (np.pi * Delta_r * np.log(1 + np.exp(2 / Delta_r)))
+                * (1 - np.tanh((np.pow(r_sample, 2) - 1) / delta_r))
+                / (np.pi * delta_r * np.log(1 + np.exp(2 / delta_r)))
             )
 
         # distribute uniformly azimuthally
         theta: NDArray[float32] = (
-            2 * np.pi * rng.random(network_params.N, dtype=float32)
+            2 * np.pi * rng.random(network_params.n, dtype=float32)
         )
 
         # use a rejection sampler to find radial positions in line with the distribution function
         r = sampler.rejection(
             rng,
-            lambda r_sample: radial_dist(r_sample, network_params.Delta_r),
-            network_params.N,
+            lambda r_sample: radial_dist(r_sample, network_params.delta_r),
+            network_params.n,
             0,
             2,  # chosen as the distribution ~ 0 here, could go larger -- don't think its necessary
         )
         return np.array([r * np.cos(theta), r * np.sin(theta)], dtype=float32).T
 
     def _get_connection_matrix(
-        N_I: int,
+        number_inhib: int,
         positions: NDArray[float32],
         cell_params: CellParams,
         synaptic_params: SynapticParams,
@@ -136,14 +133,14 @@ class State:
         rng: Generator,
     ) -> NDArray[float32]:
         def get_connection_weight(
-            V_PSP: float,
+            v_psp: float,
             rev_pot: float,
             cell_params: CellParams,
             synaptic_params: SynapticParams,
         ):
             return (
-                V_PSP
-                / (rev_pot - cell_params.V_r)
+                v_psp
+                / (rev_pot - cell_params.v_r)
                 / synaptic_params.r_s
                 * cell_params.tau_cell
                 / synaptic_params.tau_s
@@ -160,45 +157,50 @@ class State:
                 else 2 * np.pow(spread, 2) * (1 - np.exp(-1 / 2 / np.pow(spread, 2)))
             )
 
-        N_E = network_params.N - N_I
+        number_excit = network_params.n - number_inhib
 
         # create four submatrices corresponding to the probability of
         # connection between any two neurons at infinite range according only
         # to their types and compile them into P
-        P_II: NDArray[float32] = (
-            network_params.K_I
-            * network_params.B_I
-            / (N_E + N_I * network_params.B_I)
-            * np.ones((N_I, N_I), dtype=float32)
+        probs_inhib_inhib: NDArray[float32] = (
+            network_params.k_i
+            * network_params.b_i
+            / (number_excit + number_inhib * network_params.b_i)
+            * np.ones((number_inhib, number_inhib), dtype=float32)
         )
-        P_IE: NDArray[float32] = (
-            network_params.K_E
-            * network_params.B_E
-            / (N_E + N_I * network_params.B_E)
-            * np.ones((N_I, N_E), dtype=float32)
+        probs_inhib_excit: NDArray[float32] = (
+            network_params.k_e
+            * network_params.b_e
+            / (number_excit + number_inhib * network_params.b_e)
+            * np.ones((number_inhib, number_excit), dtype=float32)
         )
-        P_EI: NDArray[float32] = (
-            network_params.K_I
-            / (N_E + N_I * network_params.B_I)
-            * np.ones((N_E, N_I), dtype=float32)
+        probs_excit_inhib: NDArray[float32] = (
+            network_params.k_i
+            / (number_excit + number_inhib * network_params.b_i)
+            * np.ones((number_excit, number_inhib), dtype=float32)
         )
-        P_EE: NDArray[float32] = (
-            network_params.K_E
-            / (N_E + N_I * network_params.B_E)
-            * np.ones((N_E, N_E), dtype=float32)
+        probs_excit_excit: NDArray[float32] = (
+            network_params.k_e
+            / (number_excit + number_inhib * network_params.b_e)
+            * np.ones((number_excit, number_excit), dtype=float32)
         )
-        P: NDArray[float32] = np.vstack(
-            (np.hstack((P_II, P_IE)), np.hstack((P_EI, P_EE)))
+        probs: NDArray[float32] = np.vstack(
+            (
+                np.hstack((probs_inhib_inhib, probs_inhib_excit)),
+                np.hstack((probs_excit_inhib, probs_excit_excit)),
+            )
         )
         # don't allow autapses
-        np.fill_diagonal(P, 0)
+        np.fill_diagonal(probs, 0)
 
         # modulate P by axonal spread distribution
         # first normalise by Z array
-        P /= np.hstack(
+        probs /= np.hstack(
             (
-                np.ones((network_params.N, N_I)) * get_Z(network_params.sigma_I),
-                np.ones((network_params.N, N_E)) * get_Z(network_params.sigma_E),
+                np.ones((network_params.n, number_inhib))
+                * get_Z(network_params.sigma_i),
+                np.ones((network_params.n, number_excit))
+                * get_Z(network_params.sigma_e),
             )
         )
         # find square euclidean norms between neurons
@@ -206,33 +208,35 @@ class State:
         norms: NDArray[float32] = (dists * dists).sum(axis=2)
         variances: NDArray[float32] = np.hstack(
             (
-                np.ones((network_params.N, N_I)) * np.pow(network_params.sigma_I, 2),
-                np.ones((network_params.N, N_E)) * np.pow(network_params.sigma_E, 2),
+                np.ones((network_params.n, number_inhib))
+                * np.pow(network_params.sigma_i, 2),
+                np.ones((network_params.n, number_excit))
+                * np.pow(network_params.sigma_e, 2),
             ),
             dtype=float32,
         )
 
         # decrease P according to axonal spread
-        P *= np.exp(-norms / 2 / variances)
+        probs *= np.exp(-norms / 2 / variances)
 
-        connections = rng.random((network_params.N, network_params.N)) < P
+        connections = rng.random((network_params.n, network_params.n)) < probs
 
-        W_I = get_connection_weight(
-            network_params.V_IPSP,
+        weights_inhib = get_connection_weight(
+            network_params.v_ipsp,
             network_params.inhib_rev_pot,
             cell_params,
             synaptic_params,
         )
-        W_E = get_connection_weight(
-            network_params.V_EPSP,
+        weights_excit = get_connection_weight(
+            network_params.v_epsp,
             network_params.excit_rev_pot,
             cell_params,
             synaptic_params,
         )
         weights: NDArray[float32] = np.hstack(
             (
-                W_I * np.ones((network_params.N, N_I)),
-                W_E * np.ones((network_params.N, N_E)),
+                weights_inhib * np.ones((network_params.n, number_inhib)),
+                weights_excit * np.ones((network_params.n, number_excit)),
             ),
             dtype=float32,
         )
@@ -247,55 +251,55 @@ class State:
         """
 
         def potential_step(
-            V: np.ndarray,
+            potns: np.ndarray,
             conductances: np.ndarray,
             synaptic_currents: np.ndarray,
-            I_a: np.ndarray,
+            applied_currents: np.ndarray,
             cell_params: CellParams,
         ) -> NDArray[float32]:
-            I = synaptic_currents[0]
-            I_epsilon = synaptic_currents[1]
-            g_K = conductances[0]
-            g_K_Ca = conductances[1]
+            i = synaptic_currents[0]
+            i_epsilon = synaptic_currents[1]
+            g_k = conductances[0]
+            g_k_ca = conductances[1]
             res = (
-                (V - cell_params.V_r)
-                * (V - cell_params.V_t)
-                / (cell_params.V_t - cell_params.V_r)
+                (potns - cell_params.v_r)
+                * (potns - cell_params.v_t)
+                / (cell_params.v_t - cell_params.v_r)
             )
-            res += I_a
-            res += -(g_K + g_K_Ca) * (V - cell_params.epsilon_K)
-            res += -(V * I - I_epsilon)
+            res += applied_currents
+            res += -(g_k + g_k_ca) * (potns - cell_params.epsilon_k)
+            res += -(potns * i - i_epsilon)
             return res / cell_params.tau_cell
 
-        k1 = potential_step(
-            self.V,
+        k_1 = potential_step(
+            self.potns,
             self.conductances,
             self.synaptic_currents,
-            self.I_a,
+            self.applied_currents,
             cell_params,
         )
-        k2 = potential_step(
-            self.V + k1 * self.time_step / 2,
+        k_2 = potential_step(
+            self.potns + k_1 * self.time_step / 2,
             self.conductances * self.conductance_decay_half_step,
             self.synaptic_currents * self.synaptic_current_decay_half_step,
-            self.I_a,
+            self.applied_currents,
             cell_params,
         )
-        k3 = potential_step(
-            self.V + k2 * self.time_step / 2,
+        k_3 = potential_step(
+            self.potns + k_2 * self.time_step / 2,
             self.conductances * self.conductance_decay_half_step,
             self.synaptic_currents * self.synaptic_current_decay_half_step,
-            self.I_a,
+            self.applied_currents,
             cell_params,
         )
-        k4 = potential_step(
-            self.V + k3 * self.time_step,
+        k_4 = potential_step(
+            self.potns + k_3 * self.time_step,
             self.conductances * self.conductance_decay_full_step,
             self.synaptic_currents * self.synaptic_current_decay_full_step,
-            self.I_a,
+            self.applied_currents,
             cell_params,
         )
-        return self.time_step / float32(6) * (k1 + 2 * k2 + 2 * k3 + k4)
+        return self.time_step / float32(6) * (k_1 + 2 * k_2 + 2 * k_3 + k_4)
 
     def update_conductances(self, steps=1):
         if steps == 1:
@@ -311,14 +315,14 @@ class State:
                 self.synaptic_current_decay_full_step, steps
             )
 
-    def process_spikes(self, cell_params, synaptic_params):
+    def process_spikes(self, cell_params: CellParams, synaptic_params: SynapticParams):
         # boolean array of neurons for which a spike has occured
-        spikes: NDArray[bool] = self.V > cell_params.V_apex
+        spikes: NDArray[bool] = self.potns > cell_params.v_apex
         if spikes.sum() == 0:
             return spikes
 
         # reset membrane potentials for those
-        self.V = np.where(spikes, cell_params.V_repol, self.V).astype(float32)
+        self.potns = np.where(spikes, cell_params.v_repol, self.potns).astype(float32)
 
         # adjust conductances
         self.conductances += spikes * self.spike_conductance_update
@@ -399,8 +403,8 @@ def run_sim(
     network_params: NetworkParams,
     time_step: float = 1,  # ms
     total_steps: int = 100 * 1000,  # 100s
-    trace_V: TraceType = NO_TRACE_TYPE,
-    trace_g_K_Ca: TraceType = NO_TRACE_TYPE,
+    trace_v: TraceType = NO_TRACE_TYPE,
+    trace_g_k_ca: TraceType = NO_TRACE_TYPE,
     random_seed: int = 0,
 ) -> SimulationResult:
     """
@@ -412,8 +416,8 @@ def run_sim(
         network_params (NetworkParams): The network parameters for the simulation.
         time_step (float): The time step per-update of the simulation (ms). Defaults to 1.
         total_steps (int): The total number of steps to perform. Defaults to 100,000 -> 100s with a 1ms step.
-        trace_V (TraceType): Sets whether a trace is required for the membrane potential.
-        trace_g_K_Ca (TraceType): Sets whether a trace is required for the slow after-hyperpolarization conductance.
+        trace_v (TraceType): Sets whether a trace is required for the membrane potential.
+        trace_g_k_ca (TraceType): Sets whether a trace is required for the slow after-hyperpolarization conductance.
         random_seed (int): A seed for the random number generator used for simulation values. Defaults to 0.
 
     Returns:
@@ -426,44 +430,44 @@ def run_sim(
     """
     state = State(cell_params, synaptic_params, network_params, time_step, random_seed)
     print("Successfully initialised simulation.")
-    trace_V_acc = np.zeros(
+    trace_v_acc = np.zeros(
         total_steps + 1,
         dtype=float32,
     )
-    trace_g_K_Ca_acc = np.zeros(
+    trace_g_k_ca_acc = np.zeros(
         total_steps + 1,
         dtype=float32,
     )
 
-    spikes_s: NDArray[bool] = np.zeros((total_steps + 1, network_params.N)).astype(bool)
+    spikes_s: NDArray[bool] = np.zeros((total_steps + 1, network_params.n)).astype(bool)
     t = np.arange(0, time_step * total_steps + time_step, time_step, dtype=float32)
     for i, _ in tqdm(
         enumerate(t),
         total=total_steps,
     ):
         # RK4 voltage step
-        state.V += state.integrate_voltage(cell_params)
+        state.potns += state.integrate_voltage(cell_params)
         state.update_conductances()
         state.update_synaptic_currents()
         # get spikes
         spikes: NDArray[bool] = state.process_spikes(cell_params, synaptic_params)
 
         spikes_s[i] = spikes
-        _update_trace(trace_V_acc, trace_V, state.V, network_params, i)
+        _update_trace(trace_v_acc, trace_v, state.potns, network_params, i)
         _update_trace(
-            trace_g_K_Ca_acc, trace_g_K_Ca, state.conductances[1], network_params, i
+            trace_g_k_ca_acc, trace_g_k_ca, state.conductances[1], network_params, i
         )
 
     res: tuple[NDArray[float32], NDArray[bool], State] = t, spikes_s, state
 
-    match trace_V:
+    match trace_v:
         case NoTraceType():
             pass
         case _:
             res: tuple[NDArray[float32], NDArray[bool], State, NDArray[float32]] = (
-                res + (trace_V_acc,)
+                res + (trace_v_acc,)
             )  # ty: ignore
-    match trace_g_K_Ca:
+    match trace_g_k_ca:
         case NoTraceType():
             pass
         case _:
@@ -476,7 +480,7 @@ def run_sim(
                     NDArray[float32],
                     NDArray[float32],
                 ]
-            ) = res + (trace_g_K_Ca_acc,)  # ty: ignore
+            ) = res + (trace_g_k_ca_acc,)  # ty: ignore
     return res
 
 
@@ -489,14 +493,14 @@ def _update_trace(
 ):
     match type:
         case FullAverageTraceType():
-            accumulator[step] = state.sum() / network_params.N
+            accumulator[step] = state.sum() / network_params.n
         case ExcitatoryAverageTraceType():
             accumulator[step] = state.sum() / (
-                network_params.N - int(network_params.inhib_fraction * network_params.N)
+                network_params.n - int(network_params.inhib_fraction * network_params.n)
             )
         case InhibitoryAverageTraceType():
             accumulator[step] = state.sum() / int(
-                network_params.inhib_fraction * network_params.N
+                network_params.inhib_fraction * network_params.n
             )
         case IndexedTraceType(index):
             accumulator[step] = state[index]

@@ -7,46 +7,46 @@ class CellParams:
 
     Attributes:
         tau_cell (float): The relaxation time constant of the neuron membrane (ms).
-        V_r (float): The resting potential of the neuron membrane (mV).
-        V_t (float): The threshold potential of the neuron membrane (mV).
-        V_apex (float): The potential at which the membrane potential is reset to `V_repol`, after a spike has occured (mV).
-        V_repol (float): The potential which the membrane potential is reset to, after a spike has occured (mV).
-        epsilon_K (float): The potassium reversal potential (mV).
-        delta_g_K (float): The change in fast hyperpolarization current, after a spike has occured.
-        delta_g_K_Ca (float): The change in slow hyperpolarization current, after a spike has occured.
-        tau_K (float): The relaxation time constant of the fast hyperpolarization current.
-        tau_K_Ca (float): The relaxation time constant of the slow hyperpolarization current.
-        I_max (float): The maximum value that the random depolarizing current can take on for any given neuron.
+        v_r (float): The resting potential of the neuron membrane (mV).
+        v_t (float): The threshold potential of the neuron membrane (mV).
+        v_apex (float): The potential at which the membrane potential is reset to `V_repol`, after a spike has occured (mV).
+        v_repol (float): The potential which the membrane potential is reset to, after a spike has occured (mV).
+        epsilon_k (float): The potassium reversal potential (mV).
+        delta_g_k (float): The change in fast hyperpolarization current, after a spike has occured.
+        delta_g_k_ca (float): The change in slow hyperpolarization current, after a spike has occured.
+        tau_k (float): The relaxation time constant of the fast hyperpolarization current.
+        tau_k_ca (float): The relaxation time constant of the slow hyperpolarization current.
+        i_max (float): The maximum value that the random depolarizing current can take on for any given neuron.
     """
 
     def __repr__(self):
         res = "CellParams {"
         res += f"tau_cell: {self.tau_cell}, "
-        res += f"V_r: {self.V_r}, "
-        res += f"V_t: {self.V_t}, "
-        res += f"V_apex: {self.V_apex}, "
-        res += f"V_repol: {self.V_repol}, "
-        res += f"epsilon_K: {self.epsilon_K}, "
-        res += f"delta_g_K: {self.delta_g_K}, "
-        res += f"delta_g_K_Ca: {self.delta_g_K_Ca}, "
-        res += f"tau_K: {self.tau_K}, "
-        res += f"tau_K_Ca: {self.tau_K_Ca}, "
-        res += f"I_max: {self.I_max}" + "}"
+        res += f"v_r: {self.v_r}, "
+        res += f"v_t: {self.v_t}, "
+        res += f"v_apex: {self.v_apex}, "
+        res += f"v_repol: {self.v_repol}, "
+        res += f"epsilon_k: {self.epsilon_k}, "
+        res += f"delta_g_k: {self.delta_g_k}, "
+        res += f"delta_g_k_ca: {self.delta_g_k_ca}, "
+        res += f"tau_k: {self.tau_k}, "
+        res += f"tau_k_ca: {self.tau_k_ca}, "
+        res += f"i_max: {self.i_max}" + "}"
         return res
 
     tau_cell: float = 10  # ms
-    V_r: float = -65  # mV
-    V_t: float = -50  # mV
-    V_apex: float = 20  # mV
-    V_repol: float = -80  # mV
-    epsilon_K: float = -80
-    delta_g_K: float = 1
-    tau_K: float = 30  # ms
-    tau_K_Ca: float = 2000  # ms
+    v_r: float = -65  # mV
+    v_t: float = -50  # mV
+    v_apex: float = 20  # mV
+    v_repol: float = -80  # mV
+    epsilon_k: float = -80
+    delta_g_k: float = 1
+    tau_k: float = 30  # ms
+    tau_k_ca: float = 2000  # ms
 
-    def __init__(self, I_max: float, delta_g_K_Ca: float):
-        self.delta_g_K_Ca = delta_g_K_Ca
-        self.I_max = I_max
+    def __init__(self, i_max: float, delta_g_k_ca: float):
+        self.delta_g_k_ca = delta_g_k_ca
+        self.i_max = i_max
 
 
 class SynapticParams:
@@ -73,77 +73,77 @@ class NetworkParams:
     Holds parameters associated with the neural network.
 
     Attributes:
-        N (int): The total number of neurons in the network.
-        Delta_r (float): Half the radial distance over which the distribution of neurons drops almost to 0.
+        n (int): The total number of neurons in the network.
+        delta_r (float): Half the radial distance over which the distribution of neurons drops almost to 0.
         excit_rev_pot (float): The exictatory reversal potential at synapse (mV).
         inhib_rev_pot (float): The inhibitory reversal potential at synapse (mV).
         inhib_fraction (float): The fraction of neurons which are inhibitory.
-        K_E (int): The mean number of postsynaptic neurons an excitatory neuron connects to.
-        K_I (int): The mean number of postsynaptic neurons an inhibitory neuron connects to.
-        B_E (float): The connectivity bias for excitatory neurons (>1 -> towards inhibitory neurons).
-        B_I (float): The connectivity bias for inhibitory neurons (>1 -> towards inhibitory neurons).
-        sigma_E (float): The axonal spread of excitatory neurons (as a fraction of cortical radius).
-        sigma_I (float): The axonal spread of inhibitory neurons (as a fraction of cortical radius).
-        V_EPSP (float): The excitatory postsynaptic potential (mV).
-        V_IPSP (float): The inhibitory postsynaptic potential (mV).
+        k_e (int): The mean number of postsynaptic neurons an excitatory neuron connects to.
+        k_i (int): The mean number of postsynaptic neurons an inhibitory neuron connects to.
+        b_e (float): The connectivity bias for excitatory neurons (>1 -> towards inhibitory neurons).
+        b_i (float): The connectivity bias for inhibitory neurons (>1 -> towards inhibitory neurons).
+        sigma_e (float): The axonal spread of excitatory neurons (as a fraction of cortical radius).
+        sigma_i (float): The axonal spread of inhibitory neurons (as a fraction of cortical radius).
+        v_epsp (float): The excitatory postsynaptic potential (mV).
+        v_ipsp (float): The inhibitory postsynaptic potential (mV).
     """
 
     def __repr__(self):
         res = "NetworkParams {"
-        res += f"N: {self.N}, "
-        res += f"Delta_r: {self.Delta_r}, "
+        res += f"n: {self.n}, "
+        res += f"delta_r: {self.delta_r}, "
         res += f"excit_rev_pot: {self.excit_rev_pot}, "
         res += f"inhib_rev_pot: {self.inhib_rev_pot}, "
-        res += f"B_E: {self.B_E}, "
-        res += f"B_I: {self.B_I}, "
+        res += f"b_e: {self.b_e}, "
+        res += f"b_i: {self.b_i}, "
         res += f"inhib_fraction: {self.inhib_fraction}, "
-        res += f"K_E: {self.K_E}, "
-        res += f"K_I: {self.K_I}, "
-        res += f"sigma_E: {self.sigma_E}, "
-        res += f"sigma_I: {self.sigma_I}, "
-        res += f"V_EPSP: {self.V_EPSP}, "
-        res += f"V_IPSP: {self.V_IPSP}" + "}"
+        res += f"k_e: {self.k_e}, "
+        res += f"k_i: {self.k_i}, "
+        res += f"sigma_e: {self.sigma_e}, "
+        res += f"sigma_i: {self.sigma_i}, "
+        res += f"v_epsp: {self.v_epsp}, "
+        res += f"v_ipsp: {self.v_ipsp}" + "}"
         return res
 
-    N: int = 10000
-    Delta_r: float = 0.1
+    n: int = 10000
+    delta_r: float = 0.1
     excit_rev_pot: float = 0  # mV
     inhib_rev_pot = -80  # mV
 
     def __init__(
         self,
-        B_E: float,
-        B_I: float,
+        b_e: float,
+        b_i: float,
         inhib_fraction: float,
-        K_E: int,
-        K_I: int,
-        sigma_E: float,
-        sigma_I: float,
-        V_EPSP: float,
-        V_IPSP: float,
+        k_e: int,
+        k_i: int,
+        sigma_e: float,
+        sigma_i: float,
+        v_epsp: float,
+        v_ipsp: float,
     ):
         self.inhib_fraction = inhib_fraction
-        self.K_E = K_E
-        self.K_I = K_I
-        self.B_E = B_E
-        self.B_I = B_I
-        self.sigma_E = sigma_E
-        self.sigma_I = sigma_I
-        self.V_EPSP = V_EPSP
-        self.V_IPSP = V_IPSP
+        self.k_e = k_e
+        self.k_i = k_i
+        self.b_e = b_e
+        self.b_i = b_i
+        self.sigma_e = sigma_e
+        self.sigma_i = sigma_i
+        self.v_epsp = v_epsp
+        self.v_ipsp = v_ipsp
 
 
 def network_A(
-    I_max: float, B_E: float, B_I: float, delta_g_K_Ca: float
+    i_max: float, b_e: float, b_i: float, delta_g_k_ca: float
 ) -> tuple[CellParams, SynapticParams, NetworkParams]:
     """
     Creates parameters for a network of type A as specified in Latham et al. (2000).
 
     Args:
-        I_max (float): The maximum value that the random depolarizing current can take on for any given neuron.
-        B_E (float): The connectivity bias for excitatory neurons (>1 -> towards inhibitory neurons).
-        B_I (float): The connectivity bias for inhibitory neurons (>1 -> towards inhibitory neurons).
-        delta_g_K_Ca (float): The change in slow hyperpolarization current, after a spike has occured.
+        i_max (float): The maximum value that the random depolarizing current can take on for any given neuron.
+        b_e (float): The connectivity bias for excitatory neurons (>1 -> towards inhibitory neurons).
+        b_i (float): The connectivity bias for inhibitory neurons (>1 -> towards inhibitory neurons).
+        delta_g_k_ca (float): The change in slow hyperpolarization current, after a spike has occured.
 
     Returns:
         CellParams: The cell parameters.
@@ -151,33 +151,33 @@ def network_A(
         NetworkParams: The network parameters.
     """
     return (
-        CellParams(I_max, delta_g_K_Ca),
+        CellParams(i_max, delta_g_k_ca),
         SynapticParams(),
         NetworkParams(
-            B_E=B_E,
-            B_I=B_I,
-            K_E=1000,
-            K_I=1000,
+            b_e=b_e,
+            b_i=b_i,
+            k_e=1000,
+            k_i=1000,
             inhib_fraction=0.2,
-            sigma_E=np.inf,
-            sigma_I=np.inf,
-            V_EPSP=1,
-            V_IPSP=-1.5,
+            sigma_e=np.inf,
+            sigma_i=np.inf,
+            v_epsp=1,
+            v_ipsp=-1.5,
         ),
     )
 
 
 def network_B(
-    I_max: float, B_E: float, B_I: float, delta_g_K_Ca: float
+    i_max: float, b_e: float, b_i: float, delta_g_k_ca: float
 ) -> tuple[CellParams, SynapticParams, NetworkParams]:
     """
     Creates parameters for a network of type B as specified in Latham et al. (2000).
 
     Args:
-        I_max (float): The maximum value that the random depolarizing current can take on for any given neuron.
-        B_E (float): The connectivity bias for excitatory neurons (>1 -> towards inhibitory neurons).
-        B_I (float): The connectivity bias for inhibitory neurons (>1 -> towards inhibitory neurons).
-        delta_g_K_Ca (float): The change in slow hyperpolarization current, after a spike has occured.
+        i_max (float): The maximum value that the random depolarizing current can take on for any given neuron.
+        b_e (float): The connectivity bias for excitatory neurons (>1 -> towards inhibitory neurons).
+        b_i (float): The connectivity bias for inhibitory neurons (>1 -> towards inhibitory neurons).
+        delta_g_k_ca (float): The change in slow hyperpolarization current, after a spike has occured.
 
     Returns:
         CellParams: The cell parameters.
@@ -185,17 +185,17 @@ def network_B(
         NetworkParams: The network parameters.
     """
     return (
-        CellParams(I_max, delta_g_K_Ca),
+        CellParams(i_max, delta_g_k_ca),
         SynapticParams(),
         NetworkParams(
-            B_E=B_E,
-            B_I=B_I,
-            K_E=200,
-            K_I=200,
+            b_e=b_e,
+            b_i=b_i,
+            k_e=200,
+            k_i=200,
             inhib_fraction=0.3,
-            sigma_E=0.12,
-            sigma_I=0.12,
-            V_EPSP=4,
-            V_IPSP=-6,
+            sigma_e=0.12,
+            sigma_i=0.12,
+            v_epsp=4,
+            v_ipsp=-6,
         ),
     )

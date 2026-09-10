@@ -1,10 +1,10 @@
 from collections.abc import Callable
-from scipy.optimize import minimize_scalar
 
 import numpy as np
 from numpy import float32
 from numpy.random import Generator
 from numpy.typing import NDArray
+from scipy.optimize import minimize_scalar
 
 
 def rejection(
