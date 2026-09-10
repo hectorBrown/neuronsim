@@ -17,8 +17,9 @@ class State:
         synaptic_params: SynapticParams,
         network_params: NetworkParams,
         time_step: float,
+        random_seed: int,
     ):
-        rng = np.random.default_rng(0)
+        rng = np.random.default_rng(random_seed)
         # initialise voltages at random potentials between V_r and V_t --
         # without this there is no access to the metastable states described in
         # the paper without endogenously active cells
@@ -400,6 +401,7 @@ def run_sim(
     total_steps: int = 100 * 1000,  # 100s
     trace_V: TraceType = NO_TRACE_TYPE,
     trace_g_K_Ca: TraceType = NO_TRACE_TYPE,
+    random_seed: int = 0,
 ) -> SimulationResult:
     """
     Run neuronal simulation.
@@ -412,6 +414,7 @@ def run_sim(
         total_steps (int): The total number of steps to perform. Defaults to 100,000 -> 100s with a 1ms step.
         trace_V (TraceType): Sets whether a trace is required for the membrane potential.
         trace_g_K_Ca (TraceType): Sets whether a trace is required for the slow after-hyperpolarization conductance.
+        random_seed (int): A seed for the random number generator used for simulation values. Defaults to 0.
 
     Returns:
         NDArray[float32]: Array of shape (total_steps,) with the cumulative time at each step.
@@ -421,7 +424,7 @@ def run_sim(
         (Optional) NDArray[float32]: A voltage trace if `trace_V_index` is set.
         (Optional) NDArray[float32]: A slow after-hyperpolarization conductance trace if `trace_g_K_Ca` if set.
     """
-    state = State(cell_params, synaptic_params, network_params, time_step)
+    state = State(cell_params, synaptic_params, network_params, time_step, random_seed)
     print("Successfully initialised simulation.")
     trace_V_acc = np.zeros(
         total_steps + 1,
