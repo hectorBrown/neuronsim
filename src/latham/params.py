@@ -19,6 +19,21 @@ class CellParams:
         I_max (float): The maximum value that the random depolarizing current can take on for any given neuron.
     """
 
+    def __repr__(self):
+        res = "CellParams {"
+        res += f"tau_cell: {self.tau_cell}, "
+        res += f"V_r: {self.V_r}, "
+        res += f"V_t: {self.V_t}, "
+        res += f"V_apex: {self.V_apex}, "
+        res += f"V_repol: {self.V_repol}, "
+        res += f"epsilon_K: {self.epsilon_K}, "
+        res += f"delta_g_K: {self.delta_g_K}, "
+        res += f"delta_g_K_Ca: {self.delta_g_K_Ca}, "
+        res += f"tau_K: {self.tau_K}, "
+        res += f"tau_K_Ca: {self.tau_K_Ca}, "
+        res += f"I_max: {self.I_max}" + "}"
+        return res
+
     tau_cell: float = 10  # ms
     V_r: float = -65  # mV
     V_t: float = -50  # mV
@@ -43,6 +58,12 @@ class SynapticParams:
         tau_s (float): The relaxation time constant of the fraction of open channels on a synapse (ms).
     """
 
+    def __repr__(self):
+        res = "SynapticParams {"
+        res += f"r_s: {self.r_s}, "
+        res += f"tau_s: {self.tau_s}" + "}"
+        return res
+
     r_s = 0.1
     tau_s = 3  # ms
 
@@ -66,6 +87,23 @@ class NetworkParams:
         V_EPSP (float): The excitatory postsynaptic potential (mV).
         V_IPSP (float): The inhibitory postsynaptic potential (mV).
     """
+
+    def __repr__(self):
+        res = "NetworkParams {"
+        res += f"N: {self.N}, "
+        res += f"Delta_r: {self.Delta_r}, "
+        res += f"excit_rev_pot: {self.excit_rev_pot}, "
+        res += f"inhib_rev_pot: {self.inhib_rev_pot}, "
+        res += f"B_E: {self.B_E}, "
+        res += f"B_I: {self.B_I}, "
+        res += f"inhib_fraction: {self.inhib_fraction}, "
+        res += f"K_E: {self.K_E}, "
+        res += f"K_I: {self.K_I}, "
+        res += f"sigma_E: {self.sigma_E}, "
+        res += f"sigma_I: {self.sigma_I}, "
+        res += f"V_EPSP: {self.V_EPSP}, "
+        res += f"V_IPSP: {self.V_IPSP}" + "}"
+        return res
 
     N: int = 10000
     Delta_r: float = 0.1
