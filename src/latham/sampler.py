@@ -1,4 +1,5 @@
 from collections.abc import Callable
+from scipy.optimize import minimize_scalar
 
 import numpy as np
 from numpy import float32
@@ -23,8 +24,16 @@ def rejection(
 
     """
     res: NDArray[float32] = np.array([], dtype=float32)
+    f_min = minimize_scalar(f, bounds=(x_min, x_max), method="bounded").fun
+    f_max = -minimize_scalar(
+        lambda x: -f(x), bounds=(x_min, x_max), method="bounded"
+    ).fun
+
+    def sampler(x):
+        return (f(x) - f_min) / (f_max - f_min)
+
     while res.size < size:
         x: NDArray[float32] = x_min + (x_max - x_min) * rng.random(size, dtype=float32)
         u: NDArray[float32] = rng.random(size, dtype=float32)
-        res: NDArray[float32] = np.append(res, x[u < f(x)])
+        res: NDArray[float32] = np.append(res, x[u < sampler(x)])
     return res[:size]
