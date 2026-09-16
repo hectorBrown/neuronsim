@@ -68,7 +68,7 @@ class SynapticParams:
     tau_s = 3  # ms
 
 
-class NetworkParams:
+class ClassicNetworkParams:
     """
     Holds parameters associated with the neural network.
 
@@ -89,7 +89,7 @@ class NetworkParams:
     """
 
     def __repr__(self):
-        res = "NetworkParams {"
+        res = "ClassicNetworkParams {"
         res += f"n: {self.n}, "
         res += f"delta_r: {self.delta_r}, "
         res += f"excit_rev_pot: {self.excit_rev_pot}, "
@@ -133,9 +133,59 @@ class NetworkParams:
         self.v_ipsp = v_ipsp
 
 
+class WattsStrogatzNetworkParams:
+    """
+    Holds parameters associated with the neural network, when connectivity is
+    determined by the Watts-Strogatz network.
+
+    Attributes:
+        n (int): The total number of neurons in the network.
+        excit_rev_pot (float): The exictatory reversal potential at synapse (mV).
+        inhib_rev_pot (float): The inhibitory reversal potential at synapse (mV).
+        inhib_fraction (float): The fraction of neurons which are inhibitory.
+        k (int): The mean number of postsynaptic neurons a neuron connects to.
+        beta (int): The rewiring probability parameter for the Watts-Strogatz network.
+        v_epsp (float): The excitatory postsynaptic potential (mV).
+        v_ipsp (float): The inhibitory postsynaptic potential (mV).
+    """
+
+    def __repr__(self):
+        res = "WattsStrogatzNetworkParams {"
+        res += f"n: {self.n}, "
+        res += f"excit_rev_pot: {self.excit_rev_pot}, "
+        res += f"inhib_rev_pot: {self.inhib_rev_pot}, "
+        res += f"inhib_fraction: {self.inhib_fraction}, "
+        res += f"k: {self.k}, "
+        res += f"beta: {self.beta}, "
+        res += f"v_epsp: {self.v_epsp}, "
+        res += f"v_ipsp: {self.v_ipsp}" + "}"
+        return res
+
+    n: int = 10000
+    excit_rev_pot: float = 0  # mV
+    inhib_rev_pot = -80  # mV
+
+    def __init__(
+        self,
+        inhib_fraction: float,
+        k: int,
+        beta: float,
+        v_epsp: float,
+        v_ipsp: float,
+    ):
+        self.inhib_fraction = inhib_fraction
+        self.k = k
+        self.beta = beta
+        self.v_epsp = v_epsp
+        self.v_ipsp = v_ipsp
+
+
+type NetworkParams = WattsStrogatzNetworkParams | ClassicNetworkParams
+
+
 def network_A(
     i_max: float, b_e: float, b_i: float, delta_g_k_ca: float
-) -> tuple[CellParams, SynapticParams, NetworkParams]:
+) -> tuple[CellParams, SynapticParams, ClassicNetworkParams]:
     """
     Creates parameters for a network of type A as specified in Latham et al. (2000).
 
@@ -148,12 +198,12 @@ def network_A(
     Returns:
         CellParams: The cell parameters.
         SynapticParams: The synaptic parameters.
-        NetworkParams: The network parameters.
+        ClassicNetworkParams: The network parameters.
     """
     return (
         CellParams(i_max, delta_g_k_ca),
         SynapticParams(),
-        NetworkParams(
+        ClassicNetworkParams(
             b_e=b_e,
             b_i=b_i,
             k_e=1000,
@@ -169,7 +219,7 @@ def network_A(
 
 def network_B(
     i_max: float, b_e: float, b_i: float, delta_g_k_ca: float
-) -> tuple[CellParams, SynapticParams, NetworkParams]:
+) -> tuple[CellParams, SynapticParams, ClassicNetworkParams]:
     """
     Creates parameters for a network of type B as specified in Latham et al. (2000).
 
@@ -182,12 +232,12 @@ def network_B(
     Returns:
         CellParams: The cell parameters.
         SynapticParams: The synaptic parameters.
-        NetworkParams: The network parameters.
+        ClassicNetworkParams: The network parameters.
     """
     return (
         CellParams(i_max, delta_g_k_ca),
         SynapticParams(),
-        NetworkParams(
+        ClassicNetworkParams(
             b_e=b_e,
             b_i=b_i,
             k_e=200,
@@ -197,5 +247,44 @@ def network_B(
             sigma_i=0.12,
             v_epsp=4,
             v_ipsp=-6,
+        ),
+    )
+
+
+def network_C(
+    i_max: float,
+    k: int,
+    beta: float,
+    delta_g_k_ca: float,
+    inhib_fraction: float,
+    v_epsp: float,
+    v_ipsp: float,
+) -> tuple[CellParams, SynapticParams, WattsStrogatzNetworkParams]:
+    """
+    Creates parameters for a network of type C (Watts-Strogatz connectivity).
+
+    Args:
+        i_max (float): The maximum value that the random depolarizing current can take on for any given neuron.
+        k (int): The number of postsynaptic neurons each presynaptic neuron connects to.
+        beta (float): The Watts-Strogatz rewiring probability parameter.
+        delta_g_k_ca (float): The change in slow hyperpolarization current, after a spike has occured.
+        inhib_fraction (float): The fraction of neurons which are inhibitory.
+        v_epsp (float): The excitatory postsynaptic potential.
+        v_ipsp (float): The inhibitory postsynaptic potential.
+
+    Returns:
+        CellParams: The cell parameters.
+        SynapticParams: The synaptic parameters.
+        NetworkParams: The network parameters.
+    """
+    return (
+        CellParams(i_max, delta_g_k_ca),
+        SynapticParams(),
+        WattsStrogatzNetworkParams(
+            k=k,
+            beta=beta,
+            inhib_fraction=inhib_fraction,
+            v_epsp=v_epsp,
+            v_ipsp=v_ipsp,
         ),
     )

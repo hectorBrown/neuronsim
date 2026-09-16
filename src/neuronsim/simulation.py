@@ -6,8 +6,8 @@ from numpy.random import Generator
 from numpy.typing import NDArray
 from tqdm import tqdm
 
-from latham import sampler
-from latham.params import *
+from neuronsim import sampler
+from neuronsim.params import *
 
 
 class State:
@@ -39,9 +39,10 @@ class State:
             network_params.n, dtype=float32
         )
         # distribute neurons in space
-        self.positions: NDArray[float32] = State._get_neuron_positions(
-            rng, network_params
-        )
+        if type(network_params) is ClassicNetworkParams:
+            self.positions: NDArray[float32] = State._get_neuron_positions(
+                rng, network_params
+            )
 
         # initialise a neuron_types array of booleans (False -> Inhibitory, True -> Excitatory)
         number_inhib = int(
@@ -58,13 +59,21 @@ class State:
         ).astype(float32)
 
         # find the connection matrix
-        self.connectivity: NDArray[float32] = State._get_connection_matrix(
-            number_inhib,
-            self.positions,
-            cell_params,
-            synaptic_params,
-            network_params,
-            rng,
+        connectivity = None
+        if type(network_params) is ClassicNetworkParams:
+            connectivity = State._get_classic_connectivity(
+                number_inhib,
+                self.positions,
+                network_params,
+                rng,
+            )
+        elif type(network_params) is WattsStrogatzNetworkParams:
+            connectivity = State._get_watts_strogatz(network_params, rng)
+        else:
+            connectivity = np.zeros((0, 0)).astype(bool)
+
+        self.synapse_matrix = State._get_synapse_matrix(
+            connectivity, cell_params, synaptic_params, network_params
         )
 
         self.time_step = time_step
@@ -98,7 +107,7 @@ class State:
         )
 
     def _get_neuron_positions(
-        rng: Generator, network_params: NetworkParams
+        rng: Generator, network_params: ClassicNetworkParams
     ) -> NDArray[float32]:
         def radial_dist(r_sample, delta_r):
             return (
@@ -124,14 +133,12 @@ class State:
         )
         return np.array([r * np.cos(theta), r * np.sin(theta)], dtype=float32).T
 
-    def _get_connection_matrix(
-        number_inhib: int,
-        positions: NDArray[float32],
+    def _get_synapse_matrix(
+        connectivity: NDArray[bool],
         cell_params: CellParams,
         synaptic_params: SynapticParams,
         network_params: NetworkParams,
-        rng: Generator,
-    ) -> NDArray[float32]:
+    ):
         def get_connection_weight(
             v_psp: float,
             rev_pot: float,
@@ -149,6 +156,36 @@ class State:
                     / (cell_params.tau_cell / synaptic_params.tau_s - 1)
                 )
             )
+
+        weights_inhib = get_connection_weight(
+            network_params.v_ipsp,
+            network_params.inhib_rev_pot,
+            cell_params,
+            synaptic_params,
+        )
+        weights_excit = get_connection_weight(
+            network_params.v_epsp,
+            network_params.excit_rev_pot,
+            cell_params,
+            synaptic_params,
+        )
+        number_inhib = int(network_params.inhib_fraction * network_params.n)
+        number_excit = network_params.n - number_inhib
+        weights: NDArray[float32] = np.hstack(
+            (
+                weights_inhib * np.ones((network_params.n, number_inhib)),
+                weights_excit * np.ones((network_params.n, number_excit)),
+            ),
+            dtype=float32,
+        )
+        return connectivity * weights
+
+    def _get_classic_connectivity(
+        number_inhib: int,
+        positions: NDArray[float32],
+        network_params: ClassicNetworkParams,
+        rng: Generator,
+    ) -> NDArray[bool]:
 
         def get_Z(spread) -> float32:
             return (
@@ -219,28 +256,7 @@ class State:
         # decrease P according to axonal spread
         probs *= np.exp(-norms / 2 / variances)
 
-        connections = rng.random((network_params.n, network_params.n)) < probs
-
-        weights_inhib = get_connection_weight(
-            network_params.v_ipsp,
-            network_params.inhib_rev_pot,
-            cell_params,
-            synaptic_params,
-        )
-        weights_excit = get_connection_weight(
-            network_params.v_epsp,
-            network_params.excit_rev_pot,
-            cell_params,
-            synaptic_params,
-        )
-        weights: NDArray[float32] = np.hstack(
-            (
-                weights_inhib * np.ones((network_params.n, number_inhib)),
-                weights_excit * np.ones((network_params.n, number_excit)),
-            ),
-            dtype=float32,
-        )
-        return connections * weights
+        return rng.random((network_params.n, network_params.n)) < probs
 
     def integrate_voltage(self, cell_params: CellParams) -> NDArray[float32]:
         """
@@ -328,7 +344,7 @@ class State:
         self.conductances += spikes * self.spike_conductance_update
 
         # find a reduced connectivity matrix for only js where spike has occured
-        spike_connectivity: NDArray[float32] = self.connectivity[:, spikes]
+        spike_connectivity: NDArray[float32] = self.synapse_matrix[:, spikes]
 
         # this is effectively dotting the spike_connectivity matrix with the
         # spike vector (W_ij s^j) and doing the same multiplying the spike
@@ -351,6 +367,43 @@ class State:
         )
 
         return spikes
+
+    def _get_watts_strogatz(
+        network_params: WattsStrogatzNetworkParams, rng: Generator
+    ) -> NDArray[bool]:
+        connections = np.zeros((network_params.n, network_params.n)).astype(bool)
+        for i in range(int(network_params.k / 2)):
+            connections += np.diag(
+                np.ones(network_params.n - i - 1).astype(bool), i + 1
+            )
+            connections += np.diag(
+                np.ones(i + 1).astype(bool), network_params.n - i - 1
+            )
+        connections += connections.T
+        rewires = rng.random((network_params.n, network_params.k)) < network_params.beta
+        for i in range(network_params.n):
+            if np.any(rewires[i]):
+                for j in range(network_params.k):
+                    if rewires[i][j]:
+                        rewire_to = None
+                        while (
+                            rewire_to is None
+                            or rewire_to == i
+                            or connections[i][rewire_to]
+                        ):
+                            rewire_to = rng.integers(0, network_params.n)
+                        connections[i][
+                            (
+                                i
+                                + j
+                                - int(network_params.k / 2)
+                                + (1 if j >= int(network_params.k / 2) else 0)
+                            )
+                            % network_params.n
+                        ] = False
+                        connections[i][rewire_to] = True
+        permutation = rng.permutation(network_params.n)
+        return connections[permutation, :][:, permutation]
 
 
 @dataclass(frozen=True)

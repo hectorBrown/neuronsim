@@ -881,32 +881,6 @@ wheels = [
 ]
 
 [[package]]
-name = "latham"
-version = "0.1.0"
-source = { editable = "." }
-dependencies = [
-    { name = "jupyterlab" },
-    { name = "jupyterlab-vim" },
-    { name = "matplotlib" },
-    { name = "numpy" },
-    { name = "scipy" },
-    { name = "tqdm" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "jupyterlab", specifier = ">=4.6.3" },
-    { name = "jupyterlab-vim", specifier = ">=4.1.4" },
-    { name = "matplotlib", specifier = ">=3.11.1" },
-    { name = "numpy", specifier = ">=2.5.2" },
-    { name = "scipy", specifier = ">=1.18.1" },
-    { name = "tqdm", specifier = ">=4.70.0" },
-]
-
-[package.metadata.requires-dev]
-dev = []
-
-[[package]]
 name = "markupsafe"
 version = "3.0.3"
 source = { registry = "https://pypi.org/simple" }
@@ -1053,6 +1027,32 @@ sdist = { url = "https://files.pythonhosted.org/packages/b4/73/731debf26e27e0a03
 wheels = [
     { url = "https://files.pythonhosted.org/packages/c5/3c/3179b85b0e1c3659f0369940200cd6d0fa900e6cefcc7ea0bc6dd0e29ffb/nest_asyncio2-1.7.2-py3-none-any.whl", hash = "sha256:f5dfa702f3f81f6a03857e9a19e2ba578c0946a4ad417b4c50a24d7ba641fe01", size = 7843, upload-time = "2026-02-13T00:34:02.691Z" },
 ]
+
+[[package]]
+name = "neuronsim"
+version = "0.1.0"
+source = { editable = "." }
+dependencies = [
+    { name = "jupyterlab" },
+    { name = "jupyterlab-vim" },
+    { name = "matplotlib" },
+    { name = "numpy" },
+    { name = "scipy" },
+    { name = "tqdm" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "jupyterlab", specifier = ">=4.6.3" },
+    { name = "jupyterlab-vim", specifier = ">=4.1.4" },
+    { name = "matplotlib", specifier = ">=3.11.1" },
+    { name = "numpy", specifier = ">=2.5.2" },
+    { name = "scipy", specifier = ">=1.18.1" },
+    { name = "tqdm", specifier = ">=4.70.0" },
+]
+
+[package.metadata.requires-dev]
+dev = []
 
 [[package]]
 name = "notebook-shim"
