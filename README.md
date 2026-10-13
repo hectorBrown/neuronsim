@@ -20,3 +20,9 @@ run, however, if you should want to run the simulation yourself:
 
 Skeleton caching code is provided within the notebooks for a gzip-compressed
 pickle cache, but this is not handled automatically.
+
+## Notes
+
+- A $\LaTeX$ install is needed to generate the plots.
+- Re-running the plots will take hours and a lot of RAM, they are populated
+  already to avoid this.
